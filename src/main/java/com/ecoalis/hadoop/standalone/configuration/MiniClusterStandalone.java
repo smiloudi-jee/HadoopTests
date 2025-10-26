@@ -21,6 +21,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 
 import static com.ecoalis.hadoop.standalone.configuration.HadoopConfiguration.*;
+import static com.ecoalis.hadoop.standalone.tools.StarterUtils.*;
 
 public class MiniClusterStandalone {
     private static final Logger LOGGER = LoggerFactory.getLogger(MiniClusterStandalone.class);
@@ -262,33 +263,113 @@ public class MiniClusterStandalone {
     }
 
     private static void startSparkAndHive() throws IOException {
-        String hivePath = props.getProperty(HadoopConfiguration.HIVE_WAREHOUSE_DIR, "/user/hive/warehouse");
-        fs.mkdirs(new org.apache.hadoop.fs.Path(hivePath));
+        // --- Dossiers ---
+        // Warehouse HDFS
+        final String hiveWarehousePath = props.getProperty(HadoopConfiguration.HIVE_WAREHOUSE_DIR, "/user/hive/warehouse");
+        fs.mkdirs(new Path(hiveWarehousePath));
 
-        String derbyPath = System.getProperty(HadoopConfiguration.JAVA_TMP_DIR) + "/mini-dp/derby";
-        System.setProperty(DERBY_SYSTEM_HOME, derbyPath);
+        // Metastore LOCAL (Derby) sous le workDir => <HADOOP_HOME_TEMP>/metastore
+        final java.nio.file.Path metaDir = workDir.resolve("metastore");
+        final java.nio.file.Path derbyHome = metaDir; // on met derby.system.home = metaDir
+        ensureDir(metaDir);
 
-        spark = org.apache.spark.sql.SparkSession.builder()
+        // Optionnel : nettoyage à froid à chaque run (utile pour tests). Piloté par propriété.
+        // mini-hdfs.properties : metastore.cleanOnStart=true/false (défaut false)
+        if (Boolean.parseBoolean(props.getProperty("metastore.cleanOnStart", "false"))) {
+            deleteRecursively(metaDir);
+            ensureDir(metaDir);
+        }
+
+        // Chemin JDBC Derby "fichier" (attention au séparateur Windows)
+        final String derbyDbPath = metaDir.resolve("metastore_db").toString().replace('\\', '/');
+
+        // Nécessaire pour Derby : tous les fichiers (log/lock) seront sous derby.system.home
+        System.setProperty(DERBY_SYSTEM_HOME, derbyHome.toString());
+
+        // --- SparkSession (Hive intégré) ---
+        spark = SparkSession.builder()
                 .appName(props.getProperty(APP_SPARK_HIVE_NAME, "MiniDP-SparkHive"))
                 .master(props.getProperty(SPARK_MASTER, "local[*]"))
+
+                // HDFS côté Spark
                 .config(SPARK_HADOOP_FS_DEFAULTFS, hdfsUri)
                 .config(SPARK_HADOOP_DFS_CLIENT_USE_DATANODE_HOSTNAME,
                         props.getProperty(SPARK_HADOOP_DFS_CLIENT_USE_DATANODE_HOSTNAME, "true"))
-                .config(SPARK_SQL_WAREHOUSE_DIR,
-                        props.getProperty(SPARK_SQL_WAREHOUSE_DIR, "hdfs:///user/hive/warehouse"))
-                .config(JAVAX_JDO_OPTION_CONNECTION_URL,
-                        props.getProperty(JAVAX_JDO_OPTION_CONNECTION_URL, "jdbc:derby:;databaseName=metastore_db;create=true"))
+
+                // Warehouse HDFS (même chemin côté Spark & Hive)
+                .config(SPARK_SQL_WAREHOUSE_DIR, hdfsUri + hiveWarehousePath)
+                .config("hive.metastore.warehouse.dir", hdfsUri + hiveWarehousePath)
+
+                // Metastore Derby local (JDO)
+                .config(JAVAX_JDO_OPTION_CONNECTION_URL, "jdbc:derby:" + derbyDbPath + ";create=true")
+                .config("javax.jdo.option.ConnectionDriverName", "org.apache.derby.jdbc.EmbeddedDriver")
+
+                .config("spark.sql.legacy.allowNonEmptyLocationInCTAS", "true")
+
+                // Auto-création du schéma (évite la vérification stricte au premier run)
                 .config(DATANUCLEUS_AUTO_CREATE_SCHEMA, props.getProperty(DATANUCLEUS_AUTO_CREATE_SCHEMA, "true"))
                 .config(HIVE_METASTORE_SCHEMA_VERIFICATION, props.getProperty(HIVE_METASTORE_SCHEMA_VERIFICATION, "false"))
+
+                // Divers Hive
                 .config(SPARK_SQL_CATALOG_IMPLEMENTATION, props.getProperty(SPARK_SQL_CATALOG_IMPLEMENTATION, "hive"))
+                .config("hive.exec.scratchdir", "/tmp/hive")
+
                 .enableHiveSupport()
                 .getOrCreate();
+
+        // appelez-la après la création de 'spark'
+        registerBuiltInUdfs(spark);
+
         spark.sparkContext().setLogLevel(props.getProperty(SPARK_LOG_LEVEL, "WARN"));
 
-        // Thrift Server JDBC (optionnel)
-        String thriftEnabled = props.getProperty(HadoopConfiguration.THRIFT_ENABLED, "true");
-        if (Boolean.parseBoolean(thriftEnabled)) startThriftServer();
+        // --- Bootstrap du metastore : force l'init et évite le NPE sur databaseExists ---
+        try {
+            spark.sql("CREATE DATABASE IF NOT EXISTS default");
+            spark.sql("CREATE TABLE IF NOT EXISTS default._probe_(id INT)");
+            spark.sql("DROP TABLE IF EXISTS default._probe_");
+        } catch (Throwable t) {
+            LOGGER.warn("Bootstrap Hive a rencontré un souci (on continue) : {}", t.toString());
+        }
 
+        // --- Thrift Server JDBC (optionnel) ---
+        String thriftEnabled = props.getProperty(HadoopConfiguration.THRIFT_ENABLED, "true");
+        if (Boolean.parseBoolean(thriftEnabled)) {
+            startThriftServer();
+
+            // Attente que le port soit ouvert
+            String host = props.getProperty("advertisedhost", "localhost"); // côté client, tu utilisais localhost
+            int port = Integer.parseInt(props.getProperty(THRIFT_PORT, "10000"));
+            try {
+                waitForPortOpen(host, port, 20_000L);
+            } catch (Exception e) {
+                LOGGER.warn("Le port JDBC HiveServer2 ({}) ne s'est pas ouvert à temps : {}", port, e.toString());
+            }
+        }
+        buildPermanentUdf();
+    }
+
+    private static void buildPermanentUdf() {
+        try {
+            spark.sql(
+                    "CREATE OR REPLACE FUNCTION default.to_upper " +
+                            "AS 'com.ecoalis.hadoop.standalone.udf.ToUpperUDF'"
+            );
+            LOGGER.info("UDF Hive 'to_upper' enregistrée dans le metastore.");
+        } catch (Exception e) {
+            LOGGER.warn("Impossible d'enregistrer la UDF Hive globale: {}", e.getMessage());
+        }
+    }
+
+    /** Enregistre les UDFs intégrées (côté serveur)
+     * * Fontionne uniquement avec REST SQL (REST API exposé POST /sql/execute)
+     * * @param spark SparkSession
+     * * @return void
+     * */
+    private static void registerBuiltInUdfs(SparkSession spark) {
+        // Java 8 : UDF1<String,String>
+        org.apache.spark.sql.api.java.UDF1<String, String> toUpper =
+                s -> s == null ? null : s.toUpperCase();
+        spark.udf().register("to_upper", toUpper, org.apache.spark.sql.types.DataTypes.StringType);
     }
 
     private static void startThriftServer() {

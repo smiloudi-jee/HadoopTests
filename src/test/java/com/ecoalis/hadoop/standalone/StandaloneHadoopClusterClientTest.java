@@ -19,7 +19,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Arrays;
-import java.util.Properties;
 
 import static com.ecoalis.hadoop.standalone.tools.HdfsRecursiveListerTool.listRecursive;
 import static com.ecoalis.hadoop.utils.TestHelper.*;

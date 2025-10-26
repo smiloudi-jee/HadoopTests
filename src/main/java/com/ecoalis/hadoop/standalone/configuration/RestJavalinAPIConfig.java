@@ -32,21 +32,56 @@ public class RestJavalinAPIConfig {
         }).start(port);
 
         buildDefaultRoutes(app);
+        buildHealthRoute(app, fs, sparkSession);
         buildGetListRoute(app, fs);
         buildCreateFileRoute(app, fs);
         buildGetFileRoute(app, fs);
         buildPostSqlRoutes(app, sparkSession);
+        buildPostSqlRoutesWithMapResults(app, sparkSession);
+        buildBootstrapRoute(app, sparkSession);
     }
 
     // Route: Health check and info
     private void buildDefaultRoutes(io.javalin.Javalin app) {
-        app.get("/health", ctx -> ctx.json(java.util.Collections.singletonMap("status", "ok")));
         app.get("/info", ctx -> ctx.json(new java.util.HashMap<String, Object>() {{
             put("hdfsUri", hdfsUri);
             put("nnHttp", Integer.parseInt(props.getProperty(NN_HTTP_PORT, "9870")));
             put("warehouse", props.getProperty(SPARK_SQL_WAREHOUSE_DIR, "hdfs:///user/hive/warehouse"));
             put("thriftEnabled", props.getProperty(THRIFT_ENABLED, "true"));
         }}));
+    }
+
+    private void buildHealthRoute(io.javalin.Javalin app, FileSystem fs, SparkSession sparkSession) {
+        app.get("/health", ctx -> {
+            String hdfsOk = "DOWN", sparkOk = "DOWN", hiveOk = "DOWN";
+            try {
+                fs.listStatus(new org.apache.hadoop.fs.Path("/"));
+                hdfsOk = "UP";
+            } catch (Throwable ignore) {}
+
+            try {
+                sparkSession.range(1).count(); // ping driver/executor
+                sparkOk = "UP";
+            } catch (Throwable ignore) {}
+
+            try {
+                String host = props.getProperty("advertisedhost", "localhost");
+                int port = Integer.parseInt(props.getProperty("thrift.port", "10000"));
+                java.net.Socket s = new java.net.Socket();
+                try {
+                    s.connect(new java.net.InetSocketAddress(host, port), 700);
+                    hiveOk = "UP";
+                } finally {
+                    try { s.close(); } catch (Exception ignore) {}
+                }
+            } catch (Throwable ignore) {}
+
+            java.util.Map<String,Object> resp = new java.util.LinkedHashMap<String,Object>();
+            resp.put("hdfs", hdfsOk);
+            resp.put("spark", sparkOk);
+            resp.put("hiveServer2", hiveOk);
+            ctx.json(resp);
+        });
     }
 
     // Route: List files in a given HDFS path
@@ -114,6 +149,49 @@ public class RestJavalinAPIConfig {
                 res.add(line);
             }
             ctx.json(res);
+        });
+    }
+
+    private void buildPostSqlRoutesWithMapResults(io.javalin.Javalin app, SparkSession sparkSession) {
+        app.post("/sql/execute", ctx -> {
+            String sql = ctx.body(); // text/plain
+            if (sql != null && sql.trim().isEmpty()) {
+                ctx.status(400).result("Empty SQL");
+                return;
+            }
+            try {
+                org.apache.spark.sql.Dataset<org.apache.spark.sql.Row> df = sparkSession.sql(sql);
+                java.util.List<org.apache.spark.sql.Row> rows = df.limit(100).collectAsList();
+                java.util.List<java.util.List<Object>> data = new java.util.ArrayList<java.util.List<Object>>();
+                for (org.apache.spark.sql.Row r : rows) {
+                    java.util.List<Object> row = new java.util.ArrayList<Object>(r.size());
+                    for (int i = 0; i < r.size(); i++) row.add(r.get(i));
+                    data.add(row);
+                }
+                java.util.Map<String,Object> out = new java.util.LinkedHashMap<String,Object>();
+                out.put("sql", sql);
+                out.put("columns", java.util.Arrays.asList(df.columns()));
+                out.put("count", rows.size());
+                out.put("data", data);
+                ctx.json(out);
+            } catch (Throwable t) {
+                ctx.status(500).result("SQL error: " + t.getMessage());
+            }
+        });
+    }
+
+    private void buildBootstrapRoute(io.javalin.Javalin app, SparkSession sparkSession) {
+        app.post("/bootstrap/sample", ctx -> {
+            try {
+                sparkSession.sql("CREATE DATABASE IF NOT EXISTS demo");
+                sparkSession.sql("USE demo");
+                sparkSession.sql("CREATE TABLE IF NOT EXISTS people(id INT, name STRING) STORED AS PARQUET");
+                sparkSession.sql("INSERT INTO people VALUES (1,'Alice'),(2,'Bob'),(3,'Charlie')");
+                long cnt = sparkSession.sql("SELECT COUNT(*) FROM people").collectAsList().get(0).getLong(0);
+                ctx.json(java.util.Collections.singletonMap("rowcount", cnt));
+            } catch (Throwable t) {
+                ctx.status(500).result("Bootstrap failed: " + t.getMessage());
+            }
         });
     }
 
