@@ -12,9 +12,9 @@ public final class HdfsRecursiveListerTool {
 
     private HdfsRecursiveListerTool() {}
 
-    public static List<String> listAllPaths(FileSystem fs, String root) throws IOException {
+    public static List<String> listAllPaths(FileSystem fs, Path root) throws IOException {
         List<String> result = new ArrayList<>();
-        recurse(fs, new Path(root), result);
+        recurse(fs, root, result);
         return result;
     }
 

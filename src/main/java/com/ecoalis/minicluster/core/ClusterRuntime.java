@@ -7,7 +7,6 @@ import com.ecoalis.minicluster.modules.rest.RestBootstrap;
 import com.ecoalis.minicluster.modules.rest.RestServiceHandle;
 import com.ecoalis.minicluster.modules.spark.SparkBootstrap;
 import com.ecoalis.minicluster.modules.spark.SparkServiceHandle;
-import com.ecoalis.minicluster.util.HadoopConstants;
 import com.ecoalis.minicluster.util.PrinterTools;
 import com.ecoalis.minicluster.util.StarterUtils;
 import org.apache.hadoop.conf.Configuration;

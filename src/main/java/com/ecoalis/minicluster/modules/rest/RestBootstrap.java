@@ -6,10 +6,7 @@ import org.apache.spark.sql.SparkSession;
 
 import java.util.Properties;
 
-import static com.ecoalis.hadoop.standalone.configuration.HadoopConfiguration.*;
-import static com.ecoalis.hadoop.standalone.configuration.HadoopConfiguration.THRIFT_ENABLED;
-import static com.ecoalis.minicluster.util.HadoopConstants.REST_CORS;
-import static com.ecoalis.minicluster.util.HadoopConstants.REST_PORT;
+import static com.ecoalis.minicluster.util.HadoopConstants.*;
 
 public final class RestBootstrap {
 

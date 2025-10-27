@@ -8,8 +8,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
-import static com.ecoalis.hadoop.standalone.configuration.HadoopConfiguration.*;
-import static com.ecoalis.hadoop.standalone.configuration.HadoopConfiguration.DSF_CLIENT_USE_DATA_NODE_HOSTNAME;
+import static com.ecoalis.minicluster.util.HadoopConstants.*;
 
 public abstract class AbstractHadoopTest {
     private static final String HDFS_URI =

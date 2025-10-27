@@ -1,8 +1,5 @@
 package com.ecoalis.minicluster.core;
 
-import com.ecoalis.hadoop.standalone.configuration.HadoopConfiguration;
-import com.ecoalis.hadoop.standalone.configuration.MiniClusterStandalone;
-import com.ecoalis.minicluster.util.HadoopConstants;
 import com.ecoalis.minicluster.util.StarterUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
@@ -46,8 +43,8 @@ public final class HdfsBootstrap {
         Files.createDirectories(baseDir);
         conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, baseDir.toString());
 
-        int nnRpcPort = Integer.parseInt(props.getProperty(HadoopConfiguration.NN_RPC_PORT, "20112"));
-        int nnHttpPort = Integer.parseInt(props.getProperty(HadoopConfiguration.NN_HTTP_PORT, "9870"));
+        int nnRpcPort = Integer.parseInt(props.getProperty(NN_RPC_PORT, "20112"));
+        int nnHttpPort = Integer.parseInt(props.getProperty(NN_HTTP_PORT, "9870"));
 
         // Vérification des ports libres
         ensurePortFree(host, nnRpcPort, "NameNode RPC");
@@ -71,40 +68,40 @@ public final class HdfsBootstrap {
      * * @param conf Configuration Hadoop à modifier
      */
     private static void setUpConfigurationHadoop(Configuration conf, Properties props) {
-        conf.set(HadoopConfiguration.DSF_DATA_NODE_HOST, host);
+        conf.set(DSF_DATA_NODE_HOST, host);
 
-        String dfsPermissions = props.getProperty(HadoopConfiguration.DFS_PERMISSIONS, "false");
-        conf.setBoolean(HadoopConfiguration.DFS_PERMISSIONS, Boolean.parseBoolean(dfsPermissions));
+        String dfsPermissions = props.getProperty(DFS_PERMISSIONS, "false");
+        conf.setBoolean(DFS_PERMISSIONS, Boolean.parseBoolean(dfsPermissions));
 
-        String dfPermissionsUmask = props.getProperty(HadoopConfiguration.DF_PERMISSIONS_UMASK, "000");
-        conf.set(HadoopConfiguration.DF_PERMISSIONS_UMASK, dfPermissionsUmask);
+        String dfPermissionsUmask = props.getProperty(DF_PERMISSIONS_UMASK, "000");
+        conf.set(DF_PERMISSIONS_UMASK, dfPermissionsUmask);
 
-        String dsfNameNodeRcpBindHost = props.getProperty(HadoopConfiguration.DSF_NAME_NODE_RPC_BIND_HOST, "0.0.0.0");
-        conf.set(HadoopConfiguration.DSF_NAME_NODE_RPC_BIND_HOST, dsfNameNodeRcpBindHost);
+        String dsfNameNodeRcpBindHost = props.getProperty(DSF_NAME_NODE_RPC_BIND_HOST, "0.0.0.0");
+        conf.set(DSF_NAME_NODE_RPC_BIND_HOST, dsfNameNodeRcpBindHost);
 
-        int nnRpcPort = Integer.parseInt(props.getProperty(HadoopConfiguration.NN_RPC_PORT, "20112"));
-        conf.set(HadoopConfiguration.DSF_NAME_NODE_RPC_ADRESS, host + ":" + nnRpcPort);
+        int nnRpcPort = Integer.parseInt(props.getProperty(NN_RPC_PORT, "20112"));
+        conf.set(DSF_NAME_NODE_RPC_ADRESS, host + ":" + nnRpcPort);
 
-        String dsfNameNodeHttpBindHost = props.getProperty(HadoopConfiguration.DSF_NAME_NODE_HTTP_BIND_HOST, "0.0.0.0");
-        conf.set(HadoopConfiguration.DSF_NAME_NODE_HTTP_BIND_HOST, dsfNameNodeHttpBindHost);
+        String dsfNameNodeHttpBindHost = props.getProperty(DSF_NAME_NODE_HTTP_BIND_HOST, "0.0.0.0");
+        conf.set(DSF_NAME_NODE_HTTP_BIND_HOST, dsfNameNodeHttpBindHost);
 
-        int nnHttpPort = Integer.parseInt(props.getProperty(HadoopConfiguration.NN_HTTP_PORT, "9870"));
-        conf.set(HadoopConfiguration.DSF_NAME_NODE_HTTP_ADRESS, host + ":" + nnHttpPort);
+        int nnHttpPort = Integer.parseInt(props.getProperty(NN_HTTP_PORT, "9870"));
+        conf.set(DSF_NAME_NODE_HTTP_ADRESS, host + ":" + nnHttpPort);
 
-        String dsfDataNodeBindHost = props.getProperty(HadoopConfiguration.DSF_DATA_NODE_BIND_HOST, "0.0.0.0");
-        conf.set(HadoopConfiguration.DSF_DATA_NODE_BIND_HOST, dsfDataNodeBindHost);
+        String dsfDataNodeBindHost = props.getProperty(DSF_DATA_NODE_BIND_HOST, "0.0.0.0");
+        conf.set(DSF_DATA_NODE_BIND_HOST, dsfDataNodeBindHost);
 
-        int dnXferPort = Integer.parseInt(props.getProperty(HadoopConfiguration.DN_XFER_PORT, "9866"));
-        conf.set(HadoopConfiguration.DSF_DATA_NODE_ADDRESS, host + ":" + dnXferPort);
+        int dnXferPort = Integer.parseInt(props.getProperty(DN_XFER_PORT, "9866"));
+        conf.set(DSF_DATA_NODE_ADDRESS, host + ":" + dnXferPort);
 
-        int dnIpcPort = Integer.parseInt(props.getProperty(HadoopConfiguration.DN_IPC_PORT, "9867"));
-        conf.set(HadoopConfiguration.DSF_DATA_NODE_IPC_ADDRESS, host + ":" + dnIpcPort);
+        int dnIpcPort = Integer.parseInt(props.getProperty(DN_IPC_PORT, "9867"));
+        conf.set(DSF_DATA_NODE_IPC_ADDRESS, host + ":" + dnIpcPort);
 
-        int dnHttpPort = Integer.parseInt(props.getProperty(HadoopConfiguration.DN_HTTP_PORT, "9864"));
-        conf.set(HadoopConfiguration.DSF_DATA_NODE_HTTP_ADDRESS, host + ":" + dnHttpPort);
+        int dnHttpPort = Integer.parseInt(props.getProperty(DN_HTTP_PORT, "9864"));
+        conf.set(DSF_DATA_NODE_HTTP_ADDRESS, host + ":" + dnHttpPort);
 
         // Important quand les clients sont sur d’autres machines/sous-réseaux
-        conf.setBoolean(HadoopConfiguration.DSF_CLIENT_USE_DATA_NODE_HOSTNAME, true);
+        conf.setBoolean(DSF_CLIENT_USE_DATA_NODE_HOSTNAME, true);
     }
 
     /***
@@ -133,12 +130,12 @@ public final class HdfsBootstrap {
      * * @throws IOException
      */
     private static void setUpForWindows(java.nio.file.Path bin) throws IOException {
-        try (InputStream in = MiniClusterStandalone.class.getResourceAsStream("/" + WINUTILS)) {
+        try (InputStream in = HdfsBootstrap.class.getResourceAsStream("/" + WINUTILS)) {
             if (in == null)
                 throw new FileNotFoundException(WINUTILS + " manquant dans src/main/resources/");
             Files.copy(in, bin.resolve(WINUTILS), StandardCopyOption.REPLACE_EXISTING);
         }
-        try (InputStream in = MiniClusterStandalone.class.getResourceAsStream("/" + HADOOP_DLL)) {
+        try (InputStream in = HdfsBootstrap.class.getResourceAsStream("/" + HADOOP_DLL)) {
             if (in == null)
                 LOGGER.info(HADOOP_DLL + " manquant dans src/main/resources/, on continue sans le charger.");
             else {

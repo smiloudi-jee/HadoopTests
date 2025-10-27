@@ -1,5 +1,6 @@
 package com.ecoalis.minicluster.modules.spark;
 import com.ecoalis.minicluster.modules.hive.HiveServiceHandle;
+import com.ecoalis.minicluster.modules.hive.ToUpperUDF;
 import com.ecoalis.minicluster.util.HadoopConstants;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.Row;
@@ -88,9 +89,10 @@ public final class SparkBootstrap {
 
         // UDF permanente dans le metastore Hive (optionnel)
         try {
+            String pathToUdfClass = ToUpperUDF.class.getName();
             spark.sql(
                     "CREATE OR REPLACE FUNCTION default.to_upper " +
-                            "AS 'com.ecoalis.hadoop.standalone.udf.ToUpperUDF'"
+                            "AS '" + pathToUdfClass + "'"
             );
         } catch (Exception ignore) {
         }
