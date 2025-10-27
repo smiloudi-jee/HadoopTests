@@ -1,6 +1,6 @@
 package com.ecoalis.hadoop.standalone;
 
-import com.ecoalis.hadoop.standalone.client.StandaloneClusterClient;
+import com.ecoalis.minicluster.client.StandaloneClusterClient;
 import org.junit.jupiter.api.*;
 
 import java.sql.*;

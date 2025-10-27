@@ -1,27 +1,33 @@
-package com.ecoalis.hadoop.standalone.configuration;
+package com.ecoalis.minicluster.modules.rest;
 
 import io.javalin.core.util.RouteOverviewPlugin;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.sql.SparkSession;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.util.Properties;
 
 import static com.ecoalis.hadoop.standalone.configuration.HadoopConfiguration.*;
+import static com.ecoalis.hadoop.standalone.configuration.HadoopConfiguration.THRIFT_ENABLED;
+import static com.ecoalis.minicluster.util.HadoopConstants.REST_CORS;
+import static com.ecoalis.minicluster.util.HadoopConstants.REST_PORT;
 
-public class RestJavalinAPIConfig {
+public final class RestBootstrap {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RestJavalinAPIConfig.class);
+    private static String hdfsUri;
+    private static int port;
+    private static java.util.Properties props;
 
-    private final String hdfsUri;
-    private final java.util.Properties props;
-    private static RestJavalinAPIConfig config;
 
-    // Constructeur privé pour singleton
-    private RestJavalinAPIConfig(String hdfsUri, SparkSession sparkSession, FileSystem fs, java.util.Properties props) {
-        this.hdfsUri = hdfsUri;
-        this.props = props;
+    private RestBootstrap() {}
 
-        int port = Integer.parseInt(props.getProperty(REST_PORT, "18080"));
+    public static RestServiceHandle startRestApi(Properties properties,
+                                                 String uri,
+                                                 FileSystem fs,
+                                                 SparkSession sparkSession) {
+
+        props = properties;
+        hdfsUri = uri;
+        port = Integer.parseInt(props.getProperty(REST_PORT, "18080"));
         String cors = props.getProperty(REST_CORS, "*");
 
         io.javalin.Javalin app = io.javalin.Javalin.create(cfg -> {
@@ -29,7 +35,7 @@ public class RestJavalinAPIConfig {
             cfg.enableDevLogging();
             cfg.defaultContentType = "application/json";
             cfg.registerPlugin(new RouteOverviewPlugin("/" + JAVELIN_REST_SWAGGER));
-        }).start(port);
+        });
 
         buildDefaultRoutes(app);
         buildHealthRoute(app, fs, sparkSession);
@@ -39,10 +45,14 @@ public class RestJavalinAPIConfig {
         buildPostSqlRoutes(app, sparkSession);
         buildPostSqlRoutesWithMapResults(app, sparkSession);
         buildBootstrapRoute(app, sparkSession);
+
+        app.start(port);
+        return new RestServiceHandle(app, port);
     }
 
+
     // Route: Health check and info
-    private void buildDefaultRoutes(io.javalin.Javalin app) {
+    private static void buildDefaultRoutes(io.javalin.Javalin app) {
         app.get("/info", ctx -> ctx.json(new java.util.HashMap<String, Object>() {{
             put("hdfsUri", hdfsUri);
             put("nnHttp", Integer.parseInt(props.getProperty(NN_HTTP_PORT, "9870")));
@@ -51,7 +61,7 @@ public class RestJavalinAPIConfig {
         }}));
     }
 
-    private void buildHealthRoute(io.javalin.Javalin app, FileSystem fs, SparkSession sparkSession) {
+    private static void buildHealthRoute(io.javalin.Javalin app, FileSystem fs, SparkSession sparkSession) {
         app.get("/health", ctx -> {
             String hdfsOk = "DOWN", sparkOk = "DOWN", hiveOk = "DOWN";
             try {
@@ -85,7 +95,7 @@ public class RestJavalinAPIConfig {
     }
 
     // Route: List files in a given HDFS path
-    private void buildGetListRoute(io.javalin.Javalin app, FileSystem fs){
+    private static void buildGetListRoute(io.javalin.Javalin app, FileSystem fs){
         app.get("/hdfs/list", ctx -> {
             String path = ctx.queryParam("path");
             java.util.List<java.util.Map<String, Object>> out = new java.util.ArrayList<>();
@@ -101,7 +111,7 @@ public class RestJavalinAPIConfig {
     }
 
     // Route: Upload a file to HDFS
-    private void buildCreateFileRoute(io.javalin.Javalin app, FileSystem fs){
+    private static void buildCreateFileRoute(io.javalin.Javalin app, FileSystem fs){
         // Upload simple (texte)
         app.post("/hdfs/create", ctx -> {
             String path = ctx.queryParam("path");
@@ -118,7 +128,7 @@ public class RestJavalinAPIConfig {
     }
 
     // Route: Download a file from HDFS
-    private void buildGetFileRoute(io.javalin.Javalin app, FileSystem fs) {
+    private static void buildGetFileRoute(io.javalin.Javalin app, FileSystem fs) {
         // Download simple (texte)
         app.get("/hdfs/get", ctx -> {
             String path = ctx.queryParam("path");
@@ -134,7 +144,7 @@ public class RestJavalinAPIConfig {
     }
 
     // Route: Execute SQL query on Spark => POST with JSON body { "sql": "SELECT * FROM table" }
-    private void buildPostSqlRoutes(io.javalin.Javalin app, SparkSession sparkSession) {
+    private static void buildPostSqlRoutes(io.javalin.Javalin app, SparkSession sparkSession) {
         app.post("/sql", ctx -> {
             String sql = (String) ctx.bodyAsClass(java.util.Map.class).get("query");
             if (sql == null) {
@@ -152,7 +162,7 @@ public class RestJavalinAPIConfig {
         });
     }
 
-    private void buildPostSqlRoutesWithMapResults(io.javalin.Javalin app, SparkSession sparkSession) {
+    private static void buildPostSqlRoutesWithMapResults(io.javalin.Javalin app, SparkSession sparkSession) {
         app.post("/sql/execute", ctx -> {
             String sql = ctx.body(); // text/plain
             if (sql != null && sql.trim().isEmpty()) {
@@ -180,7 +190,7 @@ public class RestJavalinAPIConfig {
         });
     }
 
-    private void buildBootstrapRoute(io.javalin.Javalin app, SparkSession sparkSession) {
+    private static void buildBootstrapRoute(io.javalin.Javalin app, SparkSession sparkSession) {
         app.post("/bootstrap/sample", ctx -> {
             try {
                 sparkSession.sql("CREATE DATABASE IF NOT EXISTS demo");
@@ -195,11 +205,4 @@ public class RestJavalinAPIConfig {
         });
     }
 
-    public static void config(String hdfsUri, SparkSession sparkSession, FileSystem fs, java.util.Properties props) {
-        if(config == null) {
-            config = new RestJavalinAPIConfig(hdfsUri, sparkSession, fs, props);
-        } else {
-            LOGGER.info("RestJavalinAPIConfig is already configured.");
-        }
-    }
 }

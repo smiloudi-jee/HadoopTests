@@ -1,4 +1,4 @@
-package com.ecoalis.hadoop.standalone.client;
+package com.ecoalis.minicluster.client;
 
 import java.io.InputStream;
 import java.io.OutputStream;
