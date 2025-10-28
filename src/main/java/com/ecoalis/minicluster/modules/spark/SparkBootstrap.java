@@ -1,10 +1,11 @@
 package com.ecoalis.minicluster.modules.spark;
 import com.ecoalis.minicluster.modules.hive.HiveServiceHandle;
 import com.ecoalis.minicluster.modules.hive.ToUpperUDF;
+import com.ecoalis.minicluster.starter.Starter;
 import com.ecoalis.minicluster.util.HadoopConstants;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.Dataset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -13,6 +14,7 @@ import java.util.Properties;
 import static com.ecoalis.minicluster.util.HadoopConstants.*;
 
 public final class SparkBootstrap {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SparkBootstrap.class);
 
     private SparkBootstrap() {}
 
@@ -39,7 +41,7 @@ public final class SparkBootstrap {
                 .master(master)
 
                 // HDFS comme FS par défaut
-                .config("spark.hadoop.fs.defaultFS", hdfsUri)
+                .config(SPARK_HADOOP_FS_DEFAULTFS, hdfsUri)
 
                 // Hive warehouse / Spark SQL warehouse
                 .config(SPARK_SQL_WAREHOUSE_DIR, hdfsUri + hiveWarehousePath)
@@ -122,10 +124,10 @@ public final class SparkBootstrap {
 
             org.apache.spark.sql.hive.thriftserver.HiveThriftServer2
                     .startWithContext(spark.sqlContext());
-            System.out.println("Thrift Server JDBC sur port " +
+            LOGGER.info("Thrift Server JDBC sur port {}",
                     props.getProperty(THRIFT_PORT, "10000"));
         } catch (Throwable t) {
-            System.err.println("Thrift Server non démarré: " + t.getMessage());
+            LOGGER.error("Thrift Server non démarré: {}", t.getMessage());
         }
     }
 }

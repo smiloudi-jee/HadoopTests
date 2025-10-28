@@ -15,7 +15,7 @@ public class ClusterRuntimeSanityIT extends AbstractIntegrationTest {
     protected ClusterRuntimeConfig runtimeConfig() {
         // On active tout : Hive, Spark, REST, Thrift JDBC
         // et on laisse les props par défaut. Si tu veux,
-        // tu peux charger mini-hdfs.properties et le passer ici.
+        // tu peux charger mini-cluster.properties et le passer ici.
         java.util.Properties p = new java.util.Properties();
         p.setProperty("rest.enabled", "true");
         p.setProperty("spark.enabled", "true");

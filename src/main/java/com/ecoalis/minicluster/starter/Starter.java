@@ -17,7 +17,7 @@ public final class Starter {
     private static ClusterRuntime runtime;
 
     public static void main(String[] args) throws Exception {
-        // Charger mini-hdfs.properties du classpath
+        // Charger mini-cluster.properties du classpath
         Properties props = loadProps();
 
         ClusterRuntimeConfig cfg = ClusterRuntimeConfig.builder()
@@ -31,10 +31,10 @@ public final class Starter {
 
         try {
             runtime = ClusterRuntime.start(cfg);
-            System.out.println("MiniCluster running.");
-            System.out.println("HDFS URI : " + runtime.getHdfsUri());
+            LOGGER.info("MiniCluster running.");
+            LOGGER.info("HDFS URI : {}", runtime.getHdfsUri());
             runtime.getRestHandle().ifPresent(rest ->
-                    System.out.println("REST port: " + rest.getPort())
+                    LOGGER.info("REST port: {}", rest.getPort())
             );
         } catch (Exception e) {
             shutdownQuiet();
@@ -42,15 +42,15 @@ public final class Starter {
         }
         // Arrêt propre sur Ctrl+C
         Runtime.getRuntime().addShutdownHook(new Thread(Starter::shutdownQuiet));
-        LOGGER.info("MiniDFS en cours d’exécution. Presse Ctrl+C pour arrêter.");
+        LOGGER.info("MiniCluster en cours d’exécution. Presse Ctrl+C pour arrêter.");
         new java.util.concurrent.CountDownLatch(1).await();
     }
 
     private static Properties loadProps() throws IOException {
         Properties props = new Properties();
-        try (InputStream in = Starter.class.getResourceAsStream("/mini-hdfs.properties")) {
+        try (InputStream in = Starter.class.getResourceAsStream("/mini-cluster.properties")) {
             if (in == null) {
-                System.err.println("mini-hdfs.properties non trouvé, utilisation valeurs par défaut.");
+                LOGGER.error("mini-cluster.properties non trouvé, utilisation valeurs par défaut.");
             } else {
                 props.load(in);
             }
@@ -64,7 +64,7 @@ public final class Starter {
             if (runtime != null) runtime.close();
         } catch (Exception ignore) {
         }
-        LOGGER.info("MiniDFS arrêté proprement.");
+        LOGGER.info("MiniCluster arrêté proprement.");
     }
 
 }

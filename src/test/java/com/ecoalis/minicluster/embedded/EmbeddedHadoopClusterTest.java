@@ -19,6 +19,8 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 
+import static com.ecoalis.minicluster.util.HadoopConstants.SPARK_HADOOP_FS_DEFAULTFS;
+
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class EmbeddedHadoopClusterTest {
     // Configurations Hadoop
@@ -89,7 +91,7 @@ public class EmbeddedHadoopClusterTest {
                 .appName("SparkHiveOnMiniHdfs")
                 .master("local[2]")
                 // Diriger toutes les IO HDFS de Spark vers le MiniDFS
-                .config("spark.hadoop.fs.defaultFS", hdfsUri)
+                .config(SPARK_HADOOP_FS_DEFAULTFS, hdfsUri)
                 .config("spark.sql.warehouse.dir", hdfsUri + "/user/hive/warehouse")
                 .config("spark.sql.catalogImplementation", "hive")
 

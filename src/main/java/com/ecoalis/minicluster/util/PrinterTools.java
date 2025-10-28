@@ -16,7 +16,7 @@ public final class PrinterTools {
         System.out.println("HDFS URI                  : " + hdfsUri);
 
         if (props != null) {
-            System.out.println("--- mini-hdfs.properties ---");
+            System.out.println("--- mini-cluster.properties ---");
             props.forEach((k, v) -> System.out.println("  " + k + " = " + v));
         }
         System.out.println("========================================");
