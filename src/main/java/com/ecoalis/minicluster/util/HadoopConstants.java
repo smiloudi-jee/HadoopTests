@@ -56,7 +56,9 @@ public interface HadoopConstants {
     String SPARK_MASTER = "spark.master";
     String SPARK_HADOOP_FS_DEFAULTFS = "spark.hadoop.fs.defaultFS";
     String SPARK_SQL_WAREHOUSE_DIR = "spark.sql.warehouse.dir";
+    String SPARK_METASTORE_WAREHOUSE_DIR = "hive.metastore.warehouse.dir";
     String JAVAX_JDO_OPTION_CONNECTION_URL = "javax.jdo.option.ConnectionURL";
+    String JAVAX_JDO_OPTION_CONNECTION_DRIVER_NAME = "javax.jdo.option.ConnectionDriverName";
     String DATANUCLEUS_AUTO_CREATE_SCHEMA = "datanucleus.autoCreateSchema";
     String HIVE_METASTORE_SCHEMA_VERIFICATION = "hive.metastore.schema.verification";
     String SPARK_SQL_CATALOG_IMPLEMENTATION = "spark.sql.catalogImplementation";

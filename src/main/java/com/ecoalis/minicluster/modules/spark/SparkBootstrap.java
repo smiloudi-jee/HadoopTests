@@ -45,13 +45,13 @@ public final class SparkBootstrap {
 
                 // Hive warehouse / Spark SQL warehouse
                 .config(SPARK_SQL_WAREHOUSE_DIR, hdfsUri + hiveWarehousePath)
-                .config("hive.metastore.warehouse.dir", hdfsUri + hiveWarehousePath)
+                .config(SPARK_METASTORE_WAREHOUSE_DIR, hdfsUri + hiveWarehousePath)
 
                 // Metastore Derby local
                 .config(JAVAX_JDO_OPTION_CONNECTION_URL, "jdbc:derby:" + derbyDbPath + ";create=true")
-                .config("javax.jdo.option.ConnectionDriverName", "org.apache.derby.jdbc.EmbeddedDriver")
+                .config(JAVAX_JDO_OPTION_CONNECTION_DRIVER_NAME, "org.apache.derby.jdbc.EmbeddedDriver")
 
-                // Compat, bootstrap metastore
+                // Compatible bootstrap metastore
                 .config("spark.sql.legacy.allowNonEmptyLocationInCTAS", "true")
 
                 // Auto-création du schéma Hive
