@@ -1,4 +1,4 @@
-package com.ecoalis.hadoop.standalone;
+package com.ecoalis.minicluster.standalone;
 
 import com.ecoalis.minicluster.util.HdfsRecursiveListerTool;
 import org.apache.hadoop.conf.Configuration;
@@ -21,7 +21,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Arrays;
 
-import static com.ecoalis.hadoop.utils.TestHelper.*;
+import static com.ecoalis.minicluster.standalone.utils.TestHelper.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 

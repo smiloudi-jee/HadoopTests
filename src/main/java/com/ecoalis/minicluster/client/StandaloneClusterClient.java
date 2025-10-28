@@ -1,126 +1,103 @@
 package com.ecoalis.minicluster.client;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import com.ecoalis.minicluster.modules.rest.response.HdfsEntry;
+import com.ecoalis.minicluster.modules.rest.response.RestHealthResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 
 /**
- * Client for interacting with a standalone Hadoop cluster via WebHDFS, Hive JDBC, and REST API.
+ * Client applicatif Java 8 pour interagir avec le mini-cluster via l'API REST.
  */
-public final class StandaloneClusterClient {
-    private final String webhdfsBase; // ex: http://HOST:9870/webhdfs/v1
-    private final String hiveUrl;     // ex: jdbc:hive2://HOST:10000/default;transportMode=binary
-    private final String restBase;    // ex: http://HOST:18080
+public class StandaloneClusterClient {
 
-    public StandaloneClusterClient(String webhdfsBase, String hiveUrl, String restBase) {
-        this.webhdfsBase = webhdfsBase;
-        this.hiveUrl = hiveUrl;
-        this.restBase = restBase;
+    private final String baseUrl;
+    private final ObjectMapper mapper;
+    private final CloseableHttpClient httpClient;
+
+    public StandaloneClusterClient(String baseUrl) {
+        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        this.mapper = new ObjectMapper();
+        this.httpClient = HttpClients.createDefault();
     }
 
-    // Petit fichier (non chunké)
-    public void hdfsPutSmall(String path, String content) throws Exception {
-        // 1) CREATE -> 307
-        HttpURLConnection c1 = (HttpURLConnection) new URL(webhdfsBase + path + "?op=CREATE&overwrite=true").openConnection();
-        c1.setInstanceFollowRedirects(false);
-        c1.setRequestMethod("PUT");
-        int code = c1.getResponseCode();
-        if (code != 307 && code != 201) throw new RuntimeException("CREATE failed: " + code);
-        String loc = c1.getHeaderField("Location");
-        c1.disconnect();
+    /**
+     * Appelle /health et désérialise la réponse JSON.
+     */
+    public RestHealthResponse getHealth() throws IOException {
+        String url = baseUrl + "/health";
+        HttpGet req = new HttpGet(url);
 
-        // 2) PUT data
-        HttpURLConnection c2 = (HttpURLConnection) new URL(loc).openConnection();
-        c2.setDoOutput(true);
-        c2.setRequestMethod("PUT");
-        try (OutputStream os = c2.getOutputStream()) {
-            os.write(content.getBytes("UTF-8"));
-        }
-        int code2 = c2.getResponseCode();
-        c2.disconnect();
-        if (code2 != 201) throw new RuntimeException("PUT failed: " + code2);
-    }
-
-    // Gros fichiers (CHUNKED)
-    public void hdfsPutChunked(String destPath, InputStream data, int chunkKB) throws Exception {
-        // 1) CREATE -> redirection
-        HttpURLConnection c1 = (HttpURLConnection) new URL(webhdfsBase + destPath + "?op=CREATE&overwrite=true").openConnection();
-        c1.setInstanceFollowRedirects(false);
-        c1.setRequestMethod("PUT");
-        int code = c1.getResponseCode();
-        if (code != 307 && code != 201) throw new RuntimeException("CREATE failed: " + code);
-        String loc = c1.getHeaderField("Location");
-        c1.disconnect();
-
-        // 2) PUT chunked
-        HttpURLConnection c2 = (HttpURLConnection) new URL(loc).openConnection();
-        c2.setDoOutput(true);
-        c2.setRequestMethod("PUT");
-        c2.setChunkedStreamingMode(Math.max(1024, chunkKB * 1024));
-        byte[] buf = new byte[64 * 1024];
-        try (OutputStream os = c2.getOutputStream()) {
-            int r;
-            while ((r = data.read(buf)) != -1) {
-                os.write(buf, 0, r);
+        try (CloseableHttpResponse resp = httpClient.execute(req)) {
+            int code = resp.getStatusLine().getStatusCode();
+            if (code != 200) {
+                throw new IOException("GET /health returned " + code);
             }
+            String body = EntityUtils.toString(resp.getEntity(), StandardCharsets.UTF_8);
+            return mapper.readValue(body, RestHealthResponse.class);
         }
-        int code2 = c2.getResponseCode();
-        c2.disconnect();
-        if (code2 != 201) throw new RuntimeException("PUT chunked failed: " + code2);
     }
 
-    public void hdfsDownload(String hdfsPath, OutputStream out) throws Exception {
-        HttpURLConnection c = (HttpURLConnection) new URL(webhdfsBase + hdfsPath + "?op=OPEN").openConnection();
-        c.setRequestMethod("GET");
-        try (InputStream in = c.getInputStream()) {
-            byte[] buf = new byte[64 * 1024];
-            int r;
-            while ((r = in.read(buf)) != -1) out.write(buf, 0, r);
-        } finally { c.disconnect(); }
-    }
+    /**
+     * Appelle /hdfs/list?path=<path>
+     * et retourne la liste d'entrées HDFS telles que renvoyées par l'API.
+     */
+    public List<HdfsEntry> listHdfs(String path) throws IOException {
+        String encoded = URLEncoder.encode(path, "UTF-8");
+        String url = baseUrl + "/hdfs/list?path=" + encoded;
+        HttpGet req = new HttpGet(url);
 
-    public String hdfsLs(String dir) throws Exception {
-        String url = webhdfsBase + dir + "?op=LISTSTATUS";
-        java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
-        c.setRequestMethod("GET");
-        try (java.io.InputStream in = c.getInputStream()) {
-            return new java.util.Scanner(in, "UTF-8").useDelimiter("\\A").next();
-        } finally { c.disconnect(); }
-    }
+        try (CloseableHttpResponse resp = httpClient.execute(req)) {
+            int code = resp.getStatusLine().getStatusCode();
+            if (code != 200) {
+                throw new IOException("GET /hdfs/list returned " + code);
+            }
+            String body = EntityUtils.toString(resp.getEntity(), StandardCharsets.UTF_8);
 
-    // --- JDBC Hive (Spark ThriftServer) ---
-    public java.sql.Connection openHive() throws Exception {
-        Class.forName("org.apache.hive.jdbc.HiveDriver");
-        java.util.Properties p = new java.util.Properties();
-        // auth=noSasl si tu l’utilises ; sinon laisse vide pour auth par défaut
-        return java.sql.DriverManager.getConnection(hiveUrl, p);
-    }
-
-    // --- REST SQL (ton API si tu exposes /sql/execute) ---
-    public String restSql(String sql) throws Exception {
-        java.net.URL u = new java.net.URL(restBase + "/sql/execute");
-        java.net.HttpURLConnection c = (java.net.HttpURLConnection) u.openConnection();
-        c.setRequestMethod("POST");
-        c.setDoOutput(true);
-        c.setRequestProperty("Content-Type", "text/plain; charset=utf-8");
-        try (java.io.OutputStream os = c.getOutputStream()) {
-            os.write(sql.getBytes("UTF-8"));
+            HdfsEntry[] arr = mapper.readValue(body, HdfsEntry[].class);
+            return Arrays.asList(arr);
         }
-        int code = c.getResponseCode();
-        java.io.InputStream in = (code >= 200 && code < 300) ? c.getInputStream() : c.getErrorStream();
-        String body = new java.util.Scanner(in, "UTF-8").useDelimiter("\\A").next();
-        c.disconnect();
-        if (code < 200 || code >= 300) throw new RuntimeException("REST SQL error: " + code + " -> " + body);
-        return body;
     }
 
-    public String health() throws Exception {
-        java.net.URL u = new java.net.URL(restBase + "/health");
-        java.net.HttpURLConnection c = (java.net.HttpURLConnection) u.openConnection();
-        c.setRequestMethod("GET");
-        try (java.io.InputStream in = c.getInputStream()) {
-            return new java.util.Scanner(in, "UTF-8").useDelimiter("\\A").next();
-        } finally { c.disconnect(); }
+    /**
+     * Appelle /sql/execute avec le SQL en body (POST).
+     * Retourne le texte brut renvoyé (Spark DataFrame.showString()).
+     */
+    public String executeSql(String sql) throws IOException {
+        String url = baseUrl + "/sql/execute";
+        HttpPost req = new HttpPost(url);
+
+        req.setEntity(new StringEntity(sql, StandardCharsets.UTF_8));
+        req.setHeader("Content-Type", "text/plain; charset=UTF-8");
+
+        try (CloseableHttpResponse resp = httpClient.execute(req)) {
+            int code = resp.getStatusLine().getStatusCode();
+            if (code != 200) {
+                throw new IOException("POST /sql/execute returned " + code);
+            }
+            HttpEntity entity = resp.getEntity();
+            return EntityUtils.toString(entity, StandardCharsets.UTF_8);
+        }
+    }
+
+    /**
+     * Ferme proprement le client HTTP (optionnel dans les tests).
+     */
+    public void close() {
+        try {
+            httpClient.close();
+        } catch (IOException ignored) {}
     }
 }

@@ -1,4 +1,4 @@
-package com.ecoalis.hadoop.standalone;
+package com.ecoalis.minicluster.standalone;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.http.impl.client.CloseableHttpClient;

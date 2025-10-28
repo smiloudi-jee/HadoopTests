@@ -1,4 +1,4 @@
-package com.ecoalis.hadoop.embedded;
+package com.ecoalis.minicluster.embedded;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;

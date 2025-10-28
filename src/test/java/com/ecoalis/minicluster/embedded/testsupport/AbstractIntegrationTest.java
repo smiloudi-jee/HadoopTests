@@ -1,4 +1,5 @@
-package com.ecoalis.minicluster.testsupport;
+package com.ecoalis.minicluster.embedded.testsupport;
+
 import com.ecoalis.minicluster.core.ClusterRuntime;
 import com.ecoalis.minicluster.core.ClusterRuntimeConfig;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -26,8 +27,19 @@ public abstract class AbstractIntegrationTest {
         }
     }
 
+    /**
+     * Chaque test concret doit définir quels services il veut :
+     * - only HDFS     => builder() sans withSpark/withHive/withRest
+     * - Spark/Hive    => withSpark().withHive()
+     * - REST aussi    => withRest()
+     * - Thrift serveur JDBC => withThrift()
+     */
     protected abstract ClusterRuntimeConfig runtimeConfig();
 
+    /**
+     * Helper rapide : écrire un string dans HDFS.
+     * Tu peux aussi décider de déléguer à IntegrationTestSupport.writeStringToHdfs(...)
+     */
     protected void writeStringToHdfs(String hdfsPath, String content) throws Exception {
         FileSystem fs = runtime.getFileSystem();
         Path p = new Path(hdfsPath);
@@ -40,6 +52,9 @@ public abstract class AbstractIntegrationTest {
         }
     }
 
+    /**
+     * Accès Spark depuis un test qui a activé withSpark() dans runtimeConfig().
+     */
     protected SparkSession spark() {
         return runtime.getSparkSession()
                 .orElseThrow(() ->

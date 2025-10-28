@@ -60,15 +60,15 @@ public final class RestBootstrap {
 
     private static void buildHealthRoute(io.javalin.Javalin app, FileSystem fs, SparkSession sparkSession) {
         app.get("/health", ctx -> {
-            String hdfsOk = "DOWN", sparkOk = "DOWN", hiveOk = "DOWN";
+            String hdfs = "DOWN", spark = "DOWN", hive = "DOWN";
             try {
                 fs.listStatus(new org.apache.hadoop.fs.Path("/"));
-                hdfsOk = "UP";
+                hdfs = "UP";
             } catch (Throwable ignore) {}
 
             try {
                 sparkSession.range(1).count(); // ping driver/executor
-                sparkOk = "UP";
+                spark = "UP";
             } catch (Throwable ignore) {}
 
             try {
@@ -77,16 +77,17 @@ public final class RestBootstrap {
                 java.net.Socket s = new java.net.Socket();
                 try {
                     s.connect(new java.net.InetSocketAddress(host, port), 700);
-                    hiveOk = "UP";
+                    hive = "UP";
                 } finally {
                     try { s.close(); } catch (Exception ignore) {}
                 }
             } catch (Throwable ignore) {}
 
             java.util.Map<String,Object> resp = new java.util.LinkedHashMap<String,Object>();
-            resp.put("hdfs", hdfsOk);
-            resp.put("spark", sparkOk);
-            resp.put("hiveServer2", hiveOk);
+            resp.put("hdfs", hdfs);
+            resp.put("spark", spark);
+            resp.put("status", 200);
+            resp.put("hiveServer", hive);
             ctx.json(resp);
         });
     }

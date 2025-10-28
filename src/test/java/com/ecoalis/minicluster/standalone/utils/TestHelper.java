@@ -1,4 +1,4 @@
-package com.ecoalis.hadoop.utils;
+package com.ecoalis.minicluster.standalone.utils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
