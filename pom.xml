@@ -23,6 +23,8 @@
         <spark.version>3.5.1</spark.version>
         <!-- Javalin Version -->
         <javalin.version>4.6.4</javalin.version>
+        <!-- HBase Version -->
+        <hbase.version>2.5.12-hadoop3</hbase.version>
         <!-- JUnit-Jupiter -->
         <jupiter.version>5.10.2</jupiter.version>
         <!-- compatible Java 8 et Hadoop 3.3.x -->
@@ -68,6 +70,19 @@
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-launcher</artifactId>
         </dependency>
+        <!-- Use for YarnIT -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Apache Curator Test (pour Zookeeper embarqué dans les tests Hadoop) -->
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-test</artifactId>
+            <version>5.6.0</version>
+        </dependency>
 
         <!-- HADOOP LIB -->
         <dependency>
@@ -96,6 +111,50 @@
             <version>${hadoop.version}</version>
         </dependency>
 
+        <!-- HBase LIB -->
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-testing-util</artifactId>
+            <version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-client</artifactId>
+            <version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-common</artifactId>
+            <version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-common</artifactId>
+            <version>${hbase.version}</version>
+            <classifier>tests</classifier>
+            <scope>compile</scope>
+        </dependency>
+        <!-- HBase mini cluster support -->
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-server</artifactId>
+            <version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-server</artifactId>
+            <version>${hbase.version}</version>
+            <classifier>tests</classifier>
+            <scope>compile</scope>
+        </dependency>
+        <!-- Fournit la super-classe HBaseZKTestingUtility -->
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-zookeeper</artifactId>
+            <version>${hbase.version}</version>
+            <classifier>tests</classifier>
+            <scope>compile</scope>
+        </dependency>
         <!-- Spark (Scala 2.12) -->
         <dependency>
             <groupId>org.apache.spark</groupId>
