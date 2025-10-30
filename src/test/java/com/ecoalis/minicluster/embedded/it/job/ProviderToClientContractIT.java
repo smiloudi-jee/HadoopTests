@@ -1,7 +1,7 @@
 package com.ecoalis.minicluster.embedded.it.job;
 
 import com.ecoalis.minicluster.core.ClusterRuntimeConfig;
-import com.ecoalis.minicluster.client.job.ClientRiskCheckJob;
+import com.ecoalis.minicluster.job.ClientRiskCheckSparkJob;
 import com.ecoalis.minicluster.embedded.testsupport.AbstractIntegrationTest;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -62,7 +62,7 @@ public class ProviderToClientContractIT extends AbstractIntegrationTest {
         String inputPathHdfs  = runtime.getHdfsUri() + "/provider/positions.csv";
         String outputPathHdfs = runtime.getHdfsUri() + "/client/exposure_check";
         double limitThreshold = 100.0; // seuil limite interne définie par le métier
-        ClientRiskCheckJob.run(spark(), inputPathHdfs, outputPathHdfs, limitThreshold);
+        ClientRiskCheckSparkJob.run(spark(), inputPathHdfs, outputPathHdfs, limitThreshold);
 
         // Then : On lit la sortie calculée par le client
         Dataset<Row> resultDf = spark().read()

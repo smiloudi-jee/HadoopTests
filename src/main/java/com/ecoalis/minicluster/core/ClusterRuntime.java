@@ -1,12 +1,15 @@
 package com.ecoalis.minicluster.core;
 
 
+import com.ecoalis.minicluster.modules.hbase.HBaseServiceHandle;
 import com.ecoalis.minicluster.modules.hive.HiveBootstrap;
 import com.ecoalis.minicluster.modules.hive.HiveServiceHandle;
+import com.ecoalis.minicluster.modules.mapreduce.MapReduceServiceHandle;
 import com.ecoalis.minicluster.modules.rest.RestBootstrap;
 import com.ecoalis.minicluster.modules.rest.RestServiceHandle;
 import com.ecoalis.minicluster.modules.spark.SparkBootstrap;
 import com.ecoalis.minicluster.modules.spark.SparkServiceHandle;
+import com.ecoalis.minicluster.modules.yarn.YarnServiceHandle;
 import com.ecoalis.minicluster.util.PrinterTools;
 import com.ecoalis.minicluster.util.StarterUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -27,6 +30,7 @@ import java.util.Optional;
 import java.util.Properties;
 
 import static com.ecoalis.minicluster.util.HadoopConstants.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public final class ClusterRuntime implements AutoCloseable {
 
@@ -42,6 +46,9 @@ public final class ClusterRuntime implements AutoCloseable {
     private final Optional<HiveServiceHandle> hiveHandle;
     private final Optional<SparkServiceHandle> sparkHandle;
     private final Optional<RestServiceHandle> restHandle;
+    private final Optional<YarnServiceHandle> yarnHandle;
+    private final Optional<MapReduceServiceHandle> mapReduceHandle;
+    private final Optional<HBaseServiceHandle> hbaseHandle;
 
     private ClusterRuntime(ClusterRuntimeConfig config,
                            MiniDFSCluster hdfsCluster,
@@ -51,7 +58,10 @@ public final class ClusterRuntime implements AutoCloseable {
                            Path workDir,
                            Optional<HiveServiceHandle> hiveHandle,
                            Optional<SparkServiceHandle> sparkHandle,
-                           Optional<RestServiceHandle> restHandle) {
+                           Optional<RestServiceHandle> restHandle,
+                           Optional<YarnServiceHandle> yarnHandle,
+                           Optional<MapReduceServiceHandle> mapReduceHandle,
+                           Optional<HBaseServiceHandle> hbaseHandle) {
         this.config = config;
         this.hdfsCluster = hdfsCluster;
         this.fs = fs;
@@ -61,6 +71,9 @@ public final class ClusterRuntime implements AutoCloseable {
         this.hiveHandle = hiveHandle;
         this.sparkHandle = sparkHandle;
         this.restHandle = restHandle;
+        this.yarnHandle = yarnHandle;
+        this.mapReduceHandle = mapReduceHandle;
+        this.hbaseHandle = hbaseHandle;
     }
 
     public static ClusterRuntime start(ClusterRuntimeConfig cfg) throws Exception {
@@ -124,11 +137,41 @@ public final class ClusterRuntime implements AutoCloseable {
             );
         }
 
-        // 8. Print config
+        // 8. YARN
+        Optional<YarnServiceHandle> yarnHandle = Optional.empty();
+        if (cfg.isYarnEnabled()) {
+            yarnHandle = Optional.of(
+                    com.ecoalis.minicluster.modules.yarn.YarnBootstrap.startYarn(hadoopConf)
+            );
+        }
+
+        // 9. MapReduce
+        Optional<MapReduceServiceHandle> mapReduceHandle = Optional.empty();
+        if (cfg.isMapReduceEnabled()) {
+            mapReduceHandle = Optional.of(
+                    com.ecoalis.minicluster.modules.mapreduce.MapReduceBootstrap.startLocalMapReduce(
+                            hadoopConf,
+                            hdfsUri
+                    )
+            );
+        }
+
+        // 10. HBase
+        Optional<HBaseServiceHandle> hbaseHandle = Optional.empty();
+        if (cfg.isHBaseEnabled()) {
+            assertNotNull(com.ecoalis.minicluster.modules.hbase.HBaseBootstrap.startHBase(),
+                    "HB aseHandle should not be null");
+            hbaseHandle = Optional.of(
+                    com.ecoalis.minicluster.modules.hbase.HBaseBootstrap.startHBase()
+            );
+        }
+
+        // 11. Print config
         PrinterTools.printGlobalConfiguration(hdfsUri, host, props);
         sparkHandle.ifPresent(h ->
                 PrinterTools.printSparkConfiguration(h.sparkSession(), props)
         );
+
 
         return new ClusterRuntime(
                 cfg,
@@ -139,7 +182,10 @@ public final class ClusterRuntime implements AutoCloseable {
                 tmpWorkDir,
                 hiveHandle,
                 sparkHandle,
-                restHandle
+                restHandle,
+                yarnHandle,
+                mapReduceHandle,
+                hbaseHandle
         );
     }
 
@@ -185,6 +231,9 @@ public final class ClusterRuntime implements AutoCloseable {
     public Optional<RestServiceHandle> getRestHandle() { return restHandle; }
     public String getHost() { return host; }
     public Path getWorkDir() { return workDir; }
+    public Optional<YarnServiceHandle> getYarnHandle() { return yarnHandle; }
+    public Optional<MapReduceServiceHandle> getMapReduceHandle() { return mapReduceHandle; }
+    public Optional<HBaseServiceHandle> getHBaseHandle() { return hbaseHandle; }
 
     @Override
     public void close() {
@@ -192,6 +241,9 @@ public final class ClusterRuntime implements AutoCloseable {
         restHandle.ifPresent(RestServiceHandle::stop);
         sparkHandle.ifPresent(SparkServiceHandle::stop);
         hiveHandle.ifPresent(HiveServiceHandle::stop);
+        yarnHandle.ifPresent(YarnServiceHandle::close);
+        mapReduceHandle.ifPresent(MapReduceServiceHandle::close);
+        hbaseHandle.ifPresent(HBaseServiceHandle::close);
 
         try {
             fs.close();

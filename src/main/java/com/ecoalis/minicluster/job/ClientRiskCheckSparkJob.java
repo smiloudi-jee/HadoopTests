@@ -1,11 +1,11 @@
-package com.ecoalis.minicluster.client.job;
+package com.ecoalis.minicluster.job;
 import org.apache.spark.sql.*;
 
 import static org.apache.spark.sql.functions.*;
 
-public final class ClientRiskCheckJob {
+public final class ClientRiskCheckSparkJob {
 
-    private ClientRiskCheckJob() {}
+    private ClientRiskCheckSparkJob() {}
 
     /**
      * Client Risk
