@@ -10,8 +10,9 @@ public final class ClusterRuntimeConfig {
     private final boolean enableThrift; // lié à ton thrift.enabled
     private final boolean enableYarn;
     private final boolean enableMapReduce;
-    private final boolean enableZookeeper; // 👈 NEW
+    private final boolean enableZookeeper; //
     private final boolean enableHBase;
+    private final boolean enablePig;
 
     private final String baseDir;
     private final String advertisedHost;
@@ -26,6 +27,7 @@ public final class ClusterRuntimeConfig {
         this.enableMapReduce = b.enableMapReduce;
         this.enableZookeeper  = b.enableZookeeper;
         this.enableHBase      = b.enableHBase;
+        this.enablePig = b.enablePig;
 
         this.baseDir = b.baseDir;
         this.advertisedHost = b.advertisedHost;
@@ -40,6 +42,7 @@ public final class ClusterRuntimeConfig {
     public boolean isMapReduceEnabled() { return enableMapReduce; }
     public boolean isZookeeperEnabled() { return enableZookeeper; }
     public boolean isHBaseEnabled()     { return enableHBase; }
+    public boolean isPigEnabled()     { return enablePig; }
 
     public String getBaseDir()        { return baseDir; }
     public String getAdvertisedHost() { return advertisedHost; }
@@ -54,8 +57,9 @@ public final class ClusterRuntimeConfig {
         private boolean enableThrift= false;
         private boolean enableYarn  = false;
         private boolean enableMapReduce = false;
-        private boolean enableZookeeper  = false; // 👈 NEW
+        private boolean enableZookeeper  = false; //
         private boolean enableHBase      = false;
+        private boolean enablePig = false;
 
         private String baseDir      = com.ecoalis.minicluster.util.HadoopConstants.DEFAULT_BASE_DIR;
         private String advertisedHost = null;
@@ -67,10 +71,10 @@ public final class ClusterRuntimeConfig {
         public Builder withThrift(){ this.enableThrift= true; return this; }
         public Builder withYarn()    { this.enableYarn  = true; return this; }
         public Builder withMapReduce()  { this.enableMapReduce = true; return this; }
-
         // HBase fonctionne avec ZooKeeper.
         public Builder withHBase()      { this.enableHBase      = true; return withZookeeper(); }
         public Builder withZookeeper()  { this.enableZookeeper  = true; return this; }
+        public Builder withPig()   { this.enablePig      = true; return this; }
 
         public Builder baseDir(String dir) {
             this.baseDir = dir;

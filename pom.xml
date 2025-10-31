@@ -25,6 +25,10 @@
         <javalin.version>4.6.4</javalin.version>
         <!-- HBase Version -->
         <hbase.version>2.5.12-hadoop3</hbase.version>
+        <!-- PIG Version -->
+        <pig.version>0.17.0</pig.version>
+        <!-- Oozie Version -->
+        <oozie.version>5.2.1</oozie.version>
         <!-- JUnit-Jupiter -->
         <jupiter.version>5.10.2</jupiter.version>
         <!-- compatible Java 8 et Hadoop 3.3.x -->
@@ -177,6 +181,37 @@
             <artifactId>spark-hive-thriftserver_2.12</artifactId>
             <version>${spark.version}</version>
         </dependency>
+
+        <!-- Pig runtime -->
+        <dependency>
+            <groupId>org.apache.pig</groupId>
+            <artifactId>pig</artifactId>
+            <version>${pig.version}</version>
+        </dependency>
+        <!-- Optionnel pour l'utilisation de CSVLoader de piggybank -->
+        <dependency>
+          <groupId>org.apache.pig</groupId>
+          <artifactId>piggybank</artifactId>
+          <version>${pig.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.python</groupId>
+            <artifactId>jython-standalone</artifactId>
+            <version>2.7.3</version>
+        </dependency>
+
+        <!-- Optionnel mais utile pour MapReduce local -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-core</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-common</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
         <!-- Javalin pour le serveur web léger API REST JBDC-->
         <dependency>
             <groupId>io.javalin</groupId>
