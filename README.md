@@ -31,7 +31,7 @@ HadoopTests/
 - **Maven 3** - Build and dependency management
 - **Hadoop 3.3.6** - Hadoop ecosystem
 - **Spark 3.5.1** - Data processing
-- **HBase 2.5.12** - NoSQL database
+- **HBase 2.5.12-hadoop3** - NoSQL database
 - **JUnit 5** - Testing framework
 
 ## Prerequisites
@@ -182,7 +182,7 @@ Access the REST API at: `http://localhost:<rest-port>/`
 Increase JVM heap size:
 
 ```bash
-export MAVEN_OPTS="-Xmx4g -XX:MaxPermSize=512m"
+export MAVEN_OPTS="-Xmx4g"
 mvn test
 ```
 
