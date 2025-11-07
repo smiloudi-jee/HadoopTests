@@ -1,0 +1,5 @@
+com/minicluster/job/SalesAggregationJob.class
+com/minicluster/job/WordCountMapReduceJob$SumReducer.class
+com/minicluster/job/WordCountMapReduceJob.class
+com/minicluster/job/ClientRiskCheckSparkJob.class
+com/minicluster/job/WordCountMapReduceJob$TokenizerMapper.class
