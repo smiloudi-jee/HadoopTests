@@ -99,8 +99,15 @@ mvn test -Dtest=MapReduceIT
 
 Run the embedded cluster as a standalone application:
 
+**Unix/Linux/macOS:**
 ```bash
 java -cp minicluster-core/target/minicluster-core-1.0-SNAPSHOT.jar:minicluster-core/target/lib/* \
+  com.minicluster.starter.Starter
+```
+
+**Windows:**
+```cmd
+java -cp minicluster-core/target/minicluster-core-1.0-SNAPSHOT.jar;minicluster-core/target/lib/* ^
   com.minicluster.starter.Starter
 ```
 
@@ -181,8 +188,15 @@ Access the REST API at: `http://localhost:<rest-port>/`
 
 Increase JVM heap size:
 
+**Unix/Linux/macOS:**
 ```bash
 export MAVEN_OPTS="-Xmx4g"
+mvn test
+```
+
+**Windows:**
+```cmd
+set MAVEN_OPTS=-Xmx4g
 mvn test
 ```
 
