@@ -71,6 +71,10 @@ mvn clean install
 
 # Build without running tests
 mvn clean install -DskipTests
+
+# Build a specific module
+cd minicluster-core
+mvn clean install
 ```
 
 ### Run Tests
