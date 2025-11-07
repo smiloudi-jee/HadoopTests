@@ -12,23 +12,19 @@
 
     <name>app-test</name>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <dependencies>
         <!-- runtime embarqué -->
         <dependency>
             <groupId>com.ecoalis.natixis</groupId>
             <artifactId>minicluster-core</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- dépendre de l'app si les IT invoquent des jobs métier -->
         <dependency>
             <groupId>com.ecoalis.natixis</groupId>
             <artifactId>app</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 
@@ -38,13 +34,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
                 <configuration>
-                    <includes>
-                        <include>**/*Test.java</include>
-                        <include>**/*IT.java</include>
-                    </includes>
-                    <useSystemClassLoader>true</useSystemClassLoader>
                     <!-- un seul fork par défaut pour éviter conflits de ports (ZK/Oozie) -->
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
