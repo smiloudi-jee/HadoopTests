@@ -153,7 +153,7 @@ public void testHdfsOperations() throws Exception {
 The `app` module includes example jobs:
 
 - **WordCountMapReduceJob** - Classic MapReduce word count
-- **SalesAggregationJob** - Hive-based sales data aggregation
+- **SalesAggregationJob** - Spark SQL-based sales data aggregation
 - **ClientRiskCheckSparkJob** - Spark-based risk analysis
 
 ## Configuration
